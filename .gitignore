@@ -31,3 +31,4 @@ $RECYCLE.BIN/
 
 data/
 model/
+__pycache__/

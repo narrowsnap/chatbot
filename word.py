@@ -93,7 +93,7 @@ class Word:
         return X, Y
 
     # 将X和Y中的词语，转换成词向量，并将问答句长度统一
-    def XY_vector(X, Y):
+    def XY_vector(self, X, Y):
 
         # 导入训练好的词向量
         model = word2vec.Word2Vec.load(self.gensim_output_model)
