@@ -3,6 +3,14 @@ import jieba
 import re
 from gensim.models import word2vec
 import numpy as np
+# import argparse
+#
+# parser = argparse.ArgumentParser(description='generate ')
+#
+# parser.add_argument('-i', '--input_file', dest='source_file', action='store', required=True, help='source file path')
+# parser.add_argument('-o', '--segment_output', dest='segment_output', action='store', required=True, help='after segment output file path')
+# parser.add_argument('-g', '--gensim_output', dest='gensim_output', action='store', required=True, help='after gensim output file path')
+# args = parser.parse_args()
 
 class Word:
     def __init__(self,
@@ -134,8 +142,9 @@ def test():
         'data/dgk_segment.conv',
         'model/dgk_gensim_model'
     )
-    word.word_segment()
-    word.word_model()
+    # word.word_segment()
+    # word.word_model()
+    q, a = word.XY()
 
 
 if __name__ == '__main__':
