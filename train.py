@@ -12,9 +12,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import seq2seq_model as model
+import word
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-teacher_forcing_ratio = 0.5
+teacher_forcing_ratio = 1
 MAX_LENGTH = 10
 EOS_token = 'eos'
 SOS_token = 'sos'
@@ -29,15 +30,15 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
 
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
+    # encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
 
     for ei in range(input_length):
         encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
-        encoder_outputs[ei] = encoder_output[0, 0]
+        # encoder_outputs[ei] = encoder_output[0, 0]
 
-    decoder_input = torch.tensor([[SOS_token]], device=device)
+    decoder_input = encoder_output
 
     decoder_hidden = encoder_hidden
 
@@ -47,7 +48,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
         # Teacher forcing: Feed the target as the next input
         for di in range(target_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs
+                decoder_input, decoder_hidden
             )
             loss += criterion(decoder_output, target_tensor[di])
             decoder_input = target_tensor[di]
@@ -56,7 +57,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs
+                decoder_input, decoder_hidden
             )
             topv, topi = decoder_output.topk(1) # detach from history as input
 
@@ -69,6 +70,15 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
     decoder_optimizer.step()
 
     return loss.item() / target_length
+
+def generator():
+    w = word.Word(
+        'data/dgk_shooter.conv',
+        'data/dgk_segment.conv',
+        'data/dgk_segment.conv',
+        'model/dgk_gensim_model'
+    )
+    q, a = w.XY()
 
 def as_minutes(s):
     m = math.floor(s / 60)
@@ -104,13 +114,13 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
         print_loss_total += loss
         plot_loss_total += loss
 
-        if iter % print_every == 0
+        if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('%s (%d %d%%) %.4f' % (time_since(start, iter/n_iters),
                                          iter, iter/n_iters*100, print_loss_avg))
 
-        if iter % plot_every == 0
+        if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0

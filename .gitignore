@@ -30,6 +30,6 @@ plugins/ios.json
 www/
 $RECYCLE.BIN/
 
-data/
-model/
+data/*
+model/*
 __pycache__/
