@@ -152,7 +152,7 @@ class Word:
         return Q_vector, A_vector
 
     # 将QA vector 拆分成小文件
-    def piece_qa_vector(self, q_v, a_v):
+    def separate_qa_vector(self, q_v, a_v):
         count = 0
         for i in range(len(q_v)):
             if i % 2 == 0:
