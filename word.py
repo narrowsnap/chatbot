@@ -17,6 +17,7 @@ PAD = 'PAD'
 EOS = 'EOS'
 UNK = 'UNK'
 GO = 'GO'
+WORD_DIM = 100  # gensim次向量维度
 
 class Word:
     def __init__(self,
@@ -124,11 +125,9 @@ class Word:
             y_sentvec = [model[w] for w in y_word if w in model.wv.vocab]
             A_vector.append(y_sentvec)
 
-            # 计算词向量的维数
-        word_dim = len(Q_vector[1][0])
 
         # 设置结束词
-        sentend = np.ones((word_dim,), dtype=np.float32)
+        sentend = np.ones((WORD_DIM,), dtype=np.float32)
 
         # 将问-答句的长度统一
         for sentvec in Q_vector:
@@ -151,15 +150,53 @@ class Word:
 
         return Q_vector, A_vector
 
-    # 将QA vector 拆分成小文件
-    def separate_qa_vector(self, q_v, a_v):
-        count = 0
-        for i in range(len(q_v)):
-            if i % 2 == 0:
-                np.save('data/train/q_'+str(count)+'.npy', q_v[count*2:i])
-                np.save('data/train/a_'+str(count)+'.npy', a_v[count*2:i])
-                count += 1
+    def generate_vector(self, Q, A):
+        model = word2vec.Word2Vec.load(self.gensim_output_model)
+        q_v = []
+        a_v = []
+        for i in range(len(Q)):
+            q_word = Q[i].split(' ')
+            q_sentvec = [model[w] for w in q_word if w in model.wv.vocab]
+            q_v.append(q_sentvec)
 
+            a_word = A[i].split(' ')
+            a_sentvec = [model[w] for w in a_word if w in model.wv.vocab]
+            a_v.append(a_sentvec)
+
+            # 设置结束词
+            sentend = np.ones((WORD_DIM,), dtype=np.float32)
+            # 将问-答句的长度统一
+            for sentvec in q_v:
+                if len(sentvec) > 14:
+                    # 将第14个词之后的全部内容删除，并将第15个词换为sentend
+                    sentvec[14:] = []
+                    sentvec.append(sentend)
+                else:
+                    # 将不足15个词的句子，用sentend补足
+                    for _ in range(15 - len(sentvec)):
+                        sentvec.append(sentend)
+
+            for sentvec in a_v:
+                if len(sentvec) > 15:
+                    sentvec[14:] = []
+                    sentvec.append(sentend)
+                else:
+                    for _ in range(15 - len(sentvec)):
+                        sentvec.append(sentend)
+
+            if i != 0 and i % 1000 == 0:
+                yield i, np.array(q_v), np.array(a_v)
+                q_v = []
+                a_v = []
+
+    # 将QA vector 拆分成小文件
+    def separate_file(self, Q, A):
+        end = 0
+        generate_vector = self.generate_vector(self.gensim_output_model, Q, A)
+        while end < 10:
+            i, q_v, a_v = next(generate_vector)
+            print('i: {0}, shape: {1}'.format(i, q_v.shape))
+            end += 1
 
 def test():
     word = Word(
@@ -170,14 +207,10 @@ def test():
     )
     # word.word_segment()
     # word.word_model()
-    # Q, A = word.QA()
+    Q, A = word.QA()
+    print('finished generate QA')
     # word.deal_with_qa(Q, A)
-    # q_v, a_v = word.QA_vector(Q, A)
-    q_v = [[1, 2, 3], [2, 3, 4], [3, 4, 5], [1, 2, 3], [2, 3, 4], [3, 4, 5], [3, 4, 5]]
-    a_v = [[1, 2, 3], [2, 3, 4], [3, 4, 5], [1, 2, 3], [2, 3, 4], [3, 4, 5], [3, 4, 5]]
-    q_v = np.array(q_v)
-    a_v = np.array(a_v)
-    word.piece_qa_vector(q_v, a_v)
+    word.separate_file(Q, A)
 
 if __name__ == '__main__':
     test()
