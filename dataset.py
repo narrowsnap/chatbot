@@ -1,5 +1,6 @@
 import torch.utils.data as data
 import numpy as np
+import torch
 
 class VecDataSet(data.Dataset):
     def __init__(self, question, answer):
@@ -8,7 +9,7 @@ class VecDataSet(data.Dataset):
 
     def __getitem__(self, index):
         q, a = self.question[index], self.answer[index]
-        return q, a
+        return torch.from_numpy(q), torch.from_numpy(a)
 
     def __len__(self):
         return len(self.question)
