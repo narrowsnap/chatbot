@@ -11,43 +11,51 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_LENGTH=10
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, output_size, num_layers, batch_size):
         super(EncoderRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.batch_size = batch_size
 
         self.lstm = nn.LSTM(
             input_size=input_size,
-            hidden_size=hidden_size
+            hidden_size=hidden_size,
+            batch_size_first=True,
+            num_layers=num_layers
         )
+        self.out = nn.Linear(hidden_size, output_size)
 
     def forward(self, input, hidden):
         output, hidden = self.lstm(input, hidden)
+        output = self.out(output[:, -1, :])
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, self.input_size, self.hidden_size, device=device)
+        return torch.zeros(self.num_layers, self.batch_size, self.hidden_size, device=device)
 
 class DecoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, num_layers, batch_size):
         super(DecoderRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
+        self.batch_size = batch_size
 
         self.lstm = nn.LSTM(
             input_size=input_size,
-            hidden_size=hidden_size
+            hidden_size=hidden_size,
+            batch_size_first=True,
+            num_layers=num_layers
         )
-        self.out = nn.Linear(input_size, output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.out = nn.Linear(hidden_size, output_size)
 
     def forward(self, input, hidden):
-        output, hidden = self.lstm(input_size=input, hidden_size=hidden)
-        output = self.softmax(self.out(output[0]))
+        output, hidden = self.lstm(input, hidden)
+        output = self.out(output)
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
+        return torch.zeros(self.num_layers, self.batch_size, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
